@@ -1,0 +1,62 @@
+FUNCTION_BLOCK FuelControl
+
+VAR_INPUT
+  gear : REAL; // Vites durumu (1–6)
+  throttle : REAL; // Gaz pedal yüzdesi (0–100)
+END_VAR
+
+VAR_OUTPUT
+  fuel : REAL; // Yakıt miktarı (ml)
+END_VAR
+
+
+FUZZIFY throttle
+  TERM zero := (0,1) (0.5,0);
+  TERM low := (0.5,0) (1,1) (30,1) (45,0);
+  TERM medium := (30,0) (45,1) (55,1) (70,0);
+  TERM high := (55,0) (70,1) (75,1) (85,0);
+  TERM veryhigh := (75,0) (85,1) (100,1);
+END_FUZZIFY
+
+
+FUZZIFY gear
+  TERM heavy := (1,1) (1.75,1) (3,0);
+  TERM mid := (1.85,0) (2.5,1) (4,0);
+  TERM light := (2.5,0) (4,1) (6,1);
+END_FUZZIFY
+
+
+DEFUZZIFY fuel
+  TERM verylow  := (0.05,1) (0.55,1) (0.625,0);
+  TERM low      := (0.55,0) (0.625,1) (0.93,1) (0.985,0);
+  TERM medium   := (0.93,0) (0.985,1) (1.16,1) (1.57,0);
+  TERM high     := (1.16,0) (1.57,1) (1.715,1) (1.86,0);
+  TERM veryhigh := (1.715,0) (1.86,1) (2.77,1);
+ 
+  METHOD : COG;
+  DEFAULT := 0.05;
+END_DEFUZZIFY
+
+
+RULEBLOCK rules1
+  AND : MIN;
+  ACT : MIN;
+  ACCU : MAX;
+
+  RULE 1 : IF throttle IS zero THEN fuel IS verylow;
+  RULE 2 : IF throttle IS low AND gear IS light THEN fuel IS verylow;
+  RULE 3 : IF throttle IS low AND gear IS mid THEN fuel IS low;
+  RULE 4 : IF throttle IS low AND gear IS heavy THEN fuel IS medium;
+  RULE 5 : IF throttle IS medium AND gear IS light THEN fuel IS low;
+  RULE 6 : IF throttle IS medium AND gear IS mid THEN fuel IS medium;
+  RULE 7 : IF throttle IS medium AND gear IS heavy THEN fuel IS high;
+  RULE 8 : IF throttle IS high AND gear IS light THEN fuel IS medium;
+  RULE 9 : IF throttle IS high AND gear IS mid THEN fuel IS high;
+  RULE 10 : IF throttle IS high AND gear IS heavy THEN fuel IS veryhigh;
+  RULE 11 : IF throttle IS veryhigh AND gear IS light THEN fuel IS high;
+  RULE 12 : IF throttle IS veryhigh AND gear IS mid THEN fuel IS veryhigh;
+  RULE 13 : IF throttle IS veryhigh AND gear IS heavy THEN fuel IS veryhigh;
+
+END_RULEBLOCK
+
+END_FUNCTION_BLOCK
